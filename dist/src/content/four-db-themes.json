@@ -1,0 +1,37 @@
+{
+  "updated": "2026-03-19",
+  "databases": [
+    {
+      "id": "lungdev",
+      "title": "Lung Development",
+      "tagline": "Lung development from early fetal to mature adult",
+      "mission": "Stage-resolved single-cell resource for fetal-to-adult lung development.",
+      "focus": ["developmental stage", "lineage/trajectory", "marker genes", "dataset provenance"],
+      "mvp": ["stage browser", "cell type browser", "marker gene search", "dataset page"]
+    },
+    {
+      "id": "lunginf",
+      "title": "Lung Infection",
+      "tagline": "Single-cell database of lung infectious diseases",
+      "mission": "Disease-focused resource for host response across pathogen types.",
+      "focus": ["pathogen type", "severity", "healthy vs infected", "immune response modules"],
+      "mvp": ["disease browser", "pathogen browser", "healthy vs infected comparison", "dataset page"]
+    },
+    {
+      "id": "lungcancer",
+      "title": "Lung Cancer Atlas",
+      "tagline": "Single-cell atlas of lung cancer ecosystems",
+      "mission": "Atlas-centered resource for malignant states and microenvironment remodeling.",
+      "focus": ["cancer subtype", "treatment status", "malignant state", "microenvironment"],
+      "mvp": ["subtype browser", "malignant vs non-malignant views", "microenvironment explorer", "dataset page"]
+    },
+    {
+      "id": "lungevo",
+      "title": "Lung Evolution",
+      "tagline": "Evolution from fish to amphibians to reptiles to human",
+      "mission": "Comparative resource for conserved/divergent respiratory cell programs.",
+      "focus": ["species", "clade", "homologous mapping", "conserved/divergent programs"],
+      "mvp": ["species browser", "evolutionary map", "cross-species comparison", "dataset page"]
+    }
+  ]
+}

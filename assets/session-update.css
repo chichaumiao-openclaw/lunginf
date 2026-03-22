@@ -1,0 +1,5 @@
+.hero-banner{padding:64px 24px;border-radius:18px;background:linear-gradient(135deg,#0f172a,#1e293b);color:#f8fafc;box-shadow:0 10px 30px rgba(2,6,23,.35)}
+.hero-banner h1{font-size:clamp(2rem,4vw,3rem);margin:0 0 12px}
+.hero-banner p{max-width:68ch;line-height:1.6;opacity:.95}
+.quick-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:22px}
+.quick-card{background:#ffffff12;border:1px solid #ffffff2a;border-radius:12px;padding:14px}
