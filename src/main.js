@@ -148,13 +148,13 @@ function renderFooter() {
     <div class="black-footer-inner">
       <div class="footer-stack">
         <div class="footer-row">
-          <span>© Guangzhou National Laboratory</span>
+          <span>© RNAcentre</span>
           <span class="sep">|</span>
-          ${institutionalLinks
-            .map(
-              (item) => `<a href="${item.href}" target="_blank" rel="noopener noreferrer">${item.label}</a>`
-            )
-            .join('')}
+          <a href="https://www.rnacentre.org/" target="_blank" rel="noopener noreferrer">www.rnacentre.org</a>
+        </div>
+        <div class="footer-row footer-address">
+          <span class="footer-heading">Address</span>
+          <span class="footer-address-text">Building F, Guangzhou National Laboratory 9 Xingdao North Road, Guangzhou International Bio Island, Haizhu District, Guangzhou, Guangdong, China.</span>
         </div>
         <div class="footer-row footer-bundle">
           <span class="footer-heading">Bundle</span>

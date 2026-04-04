@@ -939,6 +939,15 @@ button:hover,
   overflow-wrap: anywhere;
 }
 
+.footer-address {
+  align-items: flex-start;
+}
+
+.footer-address-text {
+  max-width: 74ch;
+  line-height: 1.6;
+}
+
 .footer-bundle a[aria-current='page'] {
   text-decoration: underline;
   text-underline-offset: 3px;
