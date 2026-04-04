@@ -1,81 +1,259 @@
 import { cssVarsFor } from './theme.js';
-import { renderGlobalSearch } from './modules.js';
-import { siteConfig } from './site-content.js';
+import {
+  renderAboutPage,
+  renderConditionsPage,
+  renderDatasetsPage,
+  renderHomePage,
+  renderImmuneStatesPage,
+  renderSignalsPage,
+  initSignalSearch
+} from './modules.js';
+import { conditionBackbone, databasePortfolio, navigationItems, siteMeta } from './data.js';
 import { normalizeRoute, routeFromHash } from './router.js';
 
 let route = routeFromHash(window.location.hash);
 let mode = 'light';
+let viewerCondition = conditionBackbone[0].id;
+let mobileNavOpen = false;
 
-function setTheme() {
+const institutionalLinks = [
+  {
+    label: 'Home',
+    href: 'http://www.gznl.org/',
+    icon: './src/assets/header/home.svg'
+  },
+  {
+    label: 'Database',
+    href: 'https://www.gznl.org/database/',
+    icon: './src/assets/header/database.svg'
+  },
+  {
+    label: 'Research',
+    href: 'https://www.gznl.org/research/',
+    icon: './src/assets/header/research.svg'
+  },
+  {
+    label: 'About us',
+    href: 'https://www.gznl.org/aboutus/',
+    icon: './src/assets/header/aboutus.svg'
+  },
+  {
+    label: 'GZNL-RDC',
+    href: 'https://gzlab.ac.cn/',
+    icon: './src/assets/header/gznl2.svg'
+  }
+];
+
+function setTheme(modeKey) {
   const styleTag = document.getElementById('theme-vars') ?? document.createElement('style');
   styleTag.id = 'theme-vars';
-  styleTag.textContent = `:root { ${cssVarsFor(siteConfig.themeKey, mode)} }`;
+  styleTag.textContent = `:root { ${cssVarsFor(siteMeta.defaultTheme, modeKey)} }`;
   document.head.appendChild(styleTag);
-  document.body.setAttribute('data-mode', mode);
+  document.body.setAttribute('data-mode', modeKey);
 }
 
-function metricCards() {
-  return siteConfig.metrics.map((item) => `<div><strong>${item.value}</strong><span>${item.label}</span></div>`).join('');
+function currentRouteLabel() {
+  return navigationItems.find((item) => item.id === route)?.label ?? 'Home';
 }
 
-function nav() {
-  return `<header>
-    <div class="black-nav"><a href="#home">${siteConfig.siteName}</a><span>${siteConfig.tagline}</span></div>
+function bundleHomeHref(site) {
+  return `${site.url}#home`;
+}
+
+function renderBundleSwitcher() {
+  return `<div class="bundle-switcher">
+    <div class="bundle-switcher-head">
+      <span class="bundle-switcher-title">Lung Database Bundle</span>
+      <span class="bundle-domain">${siteMeta.customDomain}</span>
+    </div>
+    <div class="bundle-links" aria-label="Four lung database bundle switcher">
+      ${databasePortfolio
+        .map(
+          (site) => `<a
+            class="bundle-pill ${site.id === siteMeta.siteId ? 'active' : ''}"
+            href="${bundleHomeHref(site)}"
+            ${site.id === siteMeta.siteId ? 'aria-current="page"' : ''}
+          >
+            <span class="bundle-pill-label">${site.label}</span>
+            <small>${site.axis}</small>
+          </a>`
+        )
+        .join('')}
+    </div>
+  </div>`;
+}
+
+function renderHeader() {
+  return `<header class="app-header">
+    <div class="institutional-nav">
+      ${institutionalLinks
+        .map(
+          (item) => `<a class="institutional-link" href="${item.href}" target="_blank" rel="noopener noreferrer">
+            <img src="${item.icon}" alt="" />
+            <span>${item.label}</span>
+          </a>`
+        )
+        .join('')}
+    </div>
     <div class="top-nav">
-      <strong>${siteConfig.siteName}</strong>
-      <nav>${siteConfig.routes.map((key) => `<button class="nav-btn ${route === key ? 'active' : ''}" data-route="${key}">${siteConfig.navLabels[key]}</button>`).join('')}</nav>
-      <div class="theme-controls"><label>Mode<select id="mode-switcher"><option value="light" ${mode === 'light' ? 'selected' : ''}>Light</option><option value="dark" ${mode === 'dark' ? 'selected' : ''}>Dark</option></select></label></div>
+      <div class="brand-block">
+        <div class="brand-mark">LI</div>
+        <div>
+          <p class="eyebrow">Infection axis</p>
+          <div class="brand-title">${siteMeta.label}</div>
+          <p class="brand-copy">${siteMeta.strapline}</p>
+        </div>
+      </div>
+      <div class="nav-cluster">
+        <div class="nav-utility-row">
+          ${renderBundleSwitcher()}
+          <div class="nav-actions">
+            <button type="button" class="ghost mode-toggle" id="mode-switcher">
+              ${mode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            </button>
+            <button
+              type="button"
+              class="ghost nav-toggle"
+              id="nav-menu-toggle"
+              aria-expanded="${mobileNavOpen ? 'true' : 'false'}"
+              aria-controls="site-navigation"
+            >
+              ${mobileNavOpen ? 'Close menu' : 'Open menu'}
+            </button>
+          </div>
+        </div>
+        <nav class="nav-list ${mobileNavOpen ? 'open' : ''}" id="site-navigation" aria-label="lunginf navigation">
+          ${navigationItems
+            .map(
+              (item) => `<button
+                type="button"
+                class="nav-btn ${item.id === route ? 'active' : ''}"
+                data-route="${item.id}"
+                title="${item.kicker}"
+                aria-current="${item.id === route ? 'page' : 'false'}"
+              >
+                <span class="nav-label">${item.label}</span>
+                <span class="nav-tooltip" role="tooltip">${item.kicker}</span>
+              </button>`
+            )
+            .join('')}
+        </nav>
+      </div>
     </div>
   </header>`;
 }
 
-function homePage() {
-  return `<main class="page-home">
-    <section class="hero card">
-      <div>
-        <span class="eyebrow">${siteConfig.hero.eyebrow}</span>
-        <h1>${siteConfig.hero.title}</h1>
-        <p>${siteConfig.hero.description}</p>
-        <div class="actions"><button data-route="conditions">Open conditions</button><button class="ghost" data-route="immune-states">Inspect immune states</button></div>
+function renderFooter() {
+  return `<footer class="black-footer">
+    <div class="black-footer-inner">
+      <div class="footer-stack">
+        <div class="footer-row">
+          <span>© Guangzhou National Laboratory</span>
+          <span class="sep">|</span>
+          ${institutionalLinks
+            .map(
+              (item) => `<a href="${item.href}" target="_blank" rel="noopener noreferrer">${item.label}</a>`
+            )
+            .join('')}
+        </div>
+        <div class="footer-row footer-bundle">
+          <span class="footer-heading">Bundle</span>
+          ${databasePortfolio
+            .map(
+              (site) => `<a href="${bundleHomeHref(site)}" ${site.id === siteMeta.siteId ? 'aria-current="page"' : ''}>${site.label}</a>`
+            )
+            .join('')}
+        </div>
+        <div class="footer-row footer-domain">
+          <span class="footer-heading">GitHub Pages</span>
+          <a href="${siteMeta.githubPagesUrl}" target="_blank" rel="noopener noreferrer">${siteMeta.githubPagesUrl}</a>
+          <span class="sep">|</span>
+          <span class="footer-heading">Custom domain</span>
+          <strong>${siteMeta.customDomain}</strong>
+        </div>
       </div>
-      <div class="hero-metrics">${metricCards()}</div>
-    </section>
-    <section class="stats-grid">${siteConfig.spotlightCards.map((item) => `<article class="card"><h3>${item.title}</h3><p>${item.text}</p></article>`).join('')}</section>
-    <section class="card"><h2>Core modules</h2><div class="stats-grid compact">${siteConfig.moduleCards.map((item) => `<article class="mini-card"><strong>${item.title}</strong><span>${item.text}</span></article>`).join('')}</div></section>
-    ${renderGlobalSearch()}
-  </main>`;
+    </div>
+  </footer>`;
 }
 
-function conditionsPage() {
-  return `<main class="page-browse"><section class="card"><h1>Conditions</h1><p>Condition-first browsing across infection, injury, smoke exposure, and chronic inflammatory remodeling.</p></section><section class="stats-grid">${siteConfig.spotlightCards.map((item) => `<article class="card"><h3>${item.title}</h3><p>${item.text}</p></article>`).join('')}</section></main>`;
+function pageFor(name) {
+  const safeRoute = normalizeRoute(name);
+  if (safeRoute === 'conditions') return renderConditionsPage(viewerCondition, mode);
+  if (safeRoute === 'immune-states') return renderImmuneStatesPage();
+  if (safeRoute === 'signals') return renderSignalsPage();
+  if (safeRoute === 'datasets') return renderDatasetsPage();
+  if (safeRoute === 'about') return renderAboutPage();
+  return renderHomePage();
 }
 
-function immuneStatesPage() {
-  return `<main class="page-browse"><section class="card"><h1>Immune States</h1><p>Map macrophage, neutrophil, T-cell, and dendritic-cell state transitions across inflammatory contexts.</p></section><section class="stats-grid compact">${siteConfig.moduleCards.map((item) => `<article class="mini-card"><strong>${item.title}</strong><span>${item.text}</span></article>`).join('')}</section></main>`;
+function bindNavigation() {
+  document.querySelectorAll('[data-route]').forEach((element) => {
+    element.addEventListener('click', () => {
+      const nextRoute = normalizeRoute(element.getAttribute('data-route'));
+      mobileNavOpen = false;
+
+      if (route === nextRoute && window.location.hash === `#${nextRoute}`) {
+        render({ preserveScroll: true });
+        return;
+      }
+
+      route = nextRoute;
+      window.location.hash = route;
+    });
+  });
 }
 
-function signalsPage() {
-  return `<main class="page-browse"><section class="card"><h1>Signals</h1><p>Highlight cytokine circuits, interferon programs, chemokine gradients, and repair signaling.</p></section>${renderGlobalSearch()}</main>`;
-}
-function datasetsPage() { return `<main class="page-browse"><section class="card"><h1>Datasets</h1><ul>${siteConfig.datasets.map((item) => `<li>${item}</li>`).join('')}</ul></section></main>`; }
-function aboutPage() { return `<main class="page-browse"><section class="card"><h1>About ${siteConfig.siteName}</h1><p>${siteConfig.about}</p></section></main>`; }
+function bindViewerMessages() {
+  if (window.__lunginfViewerListenerBound) return;
 
-function renderPage() {
-  switch (route) {
-    case 'conditions': return conditionsPage();
-    case 'immune-states': return immuneStatesPage();
-    case 'signals': return signalsPage();
-    case 'datasets': return datasetsPage();
-    case 'about': return aboutPage();
-    default: return homePage();
+  window.addEventListener('message', (event) => {
+    const payload = event.data;
+    if (!payload || payload.type !== 'lunginf-condition-change') return;
+    if (!conditionBackbone.some((condition) => condition.id === payload.condition)) return;
+    viewerCondition = payload.condition;
+  });
+
+  window.__lunginfViewerListenerBound = true;
+}
+
+function bindModeToggle() {
+  document.getElementById('mode-switcher')?.addEventListener('click', () => {
+    mode = mode === 'light' ? 'dark' : 'light';
+    render({ preserveScroll: true });
+  });
+}
+
+function bindMenuToggle() {
+  document.getElementById('nav-menu-toggle')?.addEventListener('click', () => {
+    mobileNavOpen = !mobileNavOpen;
+    render({ preserveScroll: true });
+  });
+}
+
+function render(options = {}) {
+  const { preserveScroll = false } = options;
+  const previousScrollX = window.scrollX;
+  const previousScrollY = window.scrollY;
+
+  setTheme(mode);
+  document.title = `${siteMeta.label} | ${currentRouteLabel()}`;
+  document.getElementById('app').innerHTML = `${renderHeader()}${pageFor(route)}${renderFooter()}`;
+
+  bindNavigation();
+  bindViewerMessages();
+  bindModeToggle();
+  bindMenuToggle();
+  initSignalSearch();
+
+  if (preserveScroll) {
+    requestAnimationFrame(() => window.scrollTo(previousScrollX, previousScrollY));
   }
 }
 
-function render() {
-  setTheme();
-  document.body.innerHTML = `${nav()}${renderPage()}`;
-  document.querySelectorAll('[data-route]').forEach((node) => node.addEventListener('click', () => { window.location.hash = normalizeRoute(node.getAttribute('data-route')); }));
-  document.getElementById('mode-switcher')?.addEventListener('change', (event) => { mode = event.target.value; render(); });
-}
-window.addEventListener('hashchange', () => { route = routeFromHash(window.location.hash); render(); });
+window.addEventListener('hashchange', () => {
+  route = routeFromHash(window.location.hash);
+  mobileNavOpen = false;
+  render();
+});
+
 render();

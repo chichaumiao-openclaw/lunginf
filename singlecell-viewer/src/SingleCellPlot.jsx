@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 
-export default function SingleCellPlot({ data, selectedOrgan }) {
+export default function SingleCellPlot({ data, selectedCondition, conditionLabel }) {
   const canvasRef = useRef(null);
 
   const filtered = useMemo(
-    () => (selectedOrgan === 'All' ? data : data.filter((d) => d.organ === selectedOrgan)),
-    [data, selectedOrgan]
+    () => data.filter((d) => !selectedCondition || d.condition === selectedCondition),
+    [data, selectedCondition]
   );
 
   useEffect(() => {
@@ -14,13 +14,15 @@ export default function SingleCellPlot({ data, selectedOrgan }) {
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const computed = getComputedStyle(document.body);
+    const canvasFill = computed.getPropertyValue('--viewer-canvas').trim() || '#0b1220';
 
     const width = canvas.clientWidth || 900;
     const height = canvas.clientHeight || 560;
     canvas.width = width;
     canvas.height = height;
 
-    ctx.fillStyle = '#0b1220';
+    ctx.fillStyle = canvasFill;
     ctx.fillRect(0, 0, width, height);
 
     if (!filtered.length) return;
@@ -46,8 +48,8 @@ export default function SingleCellPlot({ data, selectedOrgan }) {
   return (
     <div className="panel plot-panel">
       <h3>UMAP Scatterplot ({filtered.length.toLocaleString()} cells)</h3>
-      <p className="hint">Canvas renderer with organ filtering and dynamic color modes.</p>
-      <canvas ref={canvasRef} style={{ width: '100%', height: '560px', border: '1px solid #374151', borderRadius: 8 }} />
+      <p className="hint">{conditionLabel} subset with simulated condition grouping and dynamic color modes.</p>
+      <canvas ref={canvasRef} className="umap-canvas" />
     </div>
   );
 }

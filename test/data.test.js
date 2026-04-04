@@ -1,53 +1,92 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  browseRows,
-  detailEvidenceRows,
-  detailRecord,
-  featuredRecords,
-  provenanceHistory,
-  recentPublications,
-  siteSummaries,
   DATA_VERSION,
-  DETERMINISTIC_SEED
+  DETERMINISTIC_SEED,
+  bundleCrossLinks,
+  conditionBackbone,
+  databasePortfolio,
+  datasetReleases,
+  navigationItems,
+  provenanceHistory,
+  siteMeta,
+  signalCatalog
 } from '../src/data.js';
 
-test('featured placeholder records include confidence labels', () => {
-  assert.equal(featuredRecords.length, 3);
-  assert.ok(featuredRecords.every((record) => typeof record.confidence === 'string' && record.confidence.length > 0));
+test('portfolio exposes the four orthogonal lung database axes', () => {
+  assert.equal(databasePortfolio.length, 4);
+  assert.deepEqual(
+    databasePortfolio.map((site) => site.id),
+    ['lungdev', 'lunginf', 'lungcancer', 'lungevo']
+  );
+  assert.ok(
+    databasePortfolio.every(
+      (site) => /^https:\/\/chichaumiao-openclaw\.github\.io\/lung/.test(site.url) && /\.gznl\.org$/.test(site.customDomain)
+    )
+  );
 });
 
-test('browse rows expose required columns', () => {
-  for (const row of browseRows) {
-    assert.ok(row.id && row.name && row.species && row.ligand && row.evidence);
-  }
+test('lunginf navigation uses the planned MVP routes', () => {
+  assert.deepEqual(
+    navigationItems.map((item) => item.id),
+    ['home', 'conditions', 'immune-states', 'signals', 'datasets', 'about']
+  );
 });
 
-test('detail evidence scores are parseable numbers', () => {
-  assert.ok(detailEvidenceRows.every((row) => Number.isFinite(Number(row.score))));
+test('condition backbone is ordered from healthy reference to repair', () => {
+  assert.equal(conditionBackbone.length, 5);
+  assert.deepEqual(conditionBackbone.map((condition) => condition.rank), [1, 2, 3, 4, 5]);
+  assert.deepEqual(conditionBackbone.map((condition) => condition.label), [
+    'Healthy',
+    'Viral',
+    'Bacterial',
+    'Fungal',
+    'Repair'
+  ]);
+});
+
+test('signal catalog exposes searchable inflammatory markers', () => {
+  assert.ok(signalCatalog.length >= 10);
+  assert.ok(
+    signalCatalog.every(
+      (signal) =>
+        signal.gene &&
+        signal.conditionFocus &&
+        signal.interpretation &&
+        signal.compartment &&
+        signal.pathway
+    )
+  );
+});
+
+test('dataset releases describe condition scope, assay, and scale', () => {
+  assert.ok(
+    datasetReleases.every(
+      (dataset) => dataset.id && dataset.conditionScope && dataset.assays && dataset.cells && dataset.structure
+    )
+  );
+});
+
+test('site metadata identifies the lunginf workspace', () => {
+  assert.equal(siteMeta.siteId, 'lunginf');
+  assert.equal(siteMeta.defaultTheme, 'lunginf');
+  assert.equal(siteMeta.githubPagesUrl, 'https://chichaumiao-openclaw.github.io/lunginf/');
+  assert.equal(siteMeta.customDomain, 'lunginf.gznl.org');
+});
+
+test('bundle cross-links cover the route-level infection entry points', () => {
+  assert.deepEqual(Object.keys(bundleCrossLinks), ['home', 'conditions', 'immune-states', 'signals', 'datasets', 'about']);
+  assert.ok(bundleCrossLinks.conditions.some((link) => link.siteId === 'lungdev' && link.route === 'atlas'));
+  assert.ok(bundleCrossLinks.signals.some((link) => link.siteId === 'lungcancer' && link.route === 'biomarkers'));
 });
 
 test('provenance history is chronological', () => {
-  const years = provenanceHistory.map((event) => Number(event.slice(0, 4)));
-  const sorted = [...years].sort((a, b) => a - b);
-  assert.deepEqual(years, sorted);
-});
-
-test('site summaries expose deterministic scope stats', () => {
-  assert.equal(siteSummaries.length, 3);
-  assert.ok(siteSummaries.every((row) => row.site && row.scope && Number.isInteger(row.records) && row.records > 0));
-});
-
-test('recent publications include doi-like identifiers and years', () => {
-  assert.ok(recentPublications.every((paper) => paper.doi.startsWith('10.') && Number.isInteger(paper.year)));
-});
-
-test('detail record includes minimum scientific context fields', () => {
-  assert.ok(detailRecord.id && detailRecord.name && detailRecord.organism);
-  assert.ok(Number.isInteger(detailRecord.sequenceLength));
+  const dates = provenanceHistory.map((event) => event.slice(0, 10));
+  const sorted = [...dates].sort();
+  assert.deepEqual(dates, sorted);
 });
 
 test('data versioning metadata is present for reproducibility', () => {
   assert.match(DATA_VERSION, /^\d{4}-\d{2}-\d{2}\./);
-  assert.equal(DETERMINISTIC_SEED, 20260307);
+  assert.equal(DETERMINISTIC_SEED, 20260404);
 });

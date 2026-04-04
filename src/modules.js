@@ -1,606 +1,580 @@
-import { aptamerMultiSelectRows, browseRows, detailEvidenceRows, provenanceHistory } from './data.js';
+import {
+  bundleCrossLinks,
+  conditionBackbone,
+  coreQuestions,
+  databasePortfolio,
+  datasetReleases,
+  evidenceHighlights,
+  heroMetrics,
+  immuneStateCatalog,
+  launchChecklist,
+  metadataPriorities,
+  methodsResources,
+  provenanceHistory,
+  routeCopy,
+  scopeBoundaries,
+  signalCatalog,
+  signalSearchSuggestions,
+  siteMeta,
+  targetUsers
+} from './data.js';
 
-export function renderGlobalSearch() {
-  return `<section class="full-width-image card" id="C-SEARCH-001">
-    <div class="search-box">
-      <div class="search">
-        <h1>GZNL's Respiratory Data Centre, GZNL-RDC</h1>
-        <div class="i">
-          <img src="./src/assets/header/gznl2.svg" alt="logo" />
-          <h1><b>Ribocentre-aptamer</b></h1>
-        </div>
-        <p>A database of RNA aptamers</p>
-
-        <div class="google-search-container">
-          <div class="search-input-container">
-            <div class="search-icon" id="search-button-header" role="button" aria-label="Search">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#9AA0A6" viewBox="0 0 16 16">
-                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-              </svg>
-            </div>
-            <input type="text" id="search-box-header" class="google-search-input" placeholder="Search RNA aptamers..." aria-label="Search keywords" autocomplete="off" />
-          </div>
-          <div class="search-results-wrapper">
-            <div id="search-results-header" class="search-results-container" style="display:none;"></div>
-          </div>
-        </div>
-
-        <p>Example:
-          <a class="tip" href="#browse">RNA aptamer</a>&nbsp;&nbsp;
-          <a class="tip" href="#detail">ATP aptamer</a>&nbsp;&nbsp;
-          <a class="tip" href="#detail">Structure</a>&nbsp;&nbsp;
-        </p>
-      </div>
-    </div>
-  </section>`;
+function renderChipList(items) {
+  return `<div class="chip-row">${items.map((item) => `<span class="chip">${item}</span>`).join('')}</div>`;
 }
 
-export function renderFacetPanel() {
-  return `<aside class="card"><h3>C-FACET-001 Facet Panel</h3><ul><li>Type</li><li>Species</li><li>Evidence</li><li>Date</li><li>Source</li></ul></aside>`;
+function renderSectionHead(kicker, title, description) {
+  return `<div class="section-head">
+    <p class="eyebrow">${kicker}</p>
+    <h2>${title}</h2>
+    <p>${description}</p>
+  </div>`;
 }
 
-export function renderResultList() {
-  const rows = browseRows
+function bundleSiteById(siteId) {
+  return databasePortfolio.find((site) => site.id === siteId);
+}
+
+function bundleHref(siteId, route = 'home') {
+  const site = bundleSiteById(siteId);
+  if (!site) return '#';
+  return route ? `${site.url}#${route}` : site.url;
+}
+
+function getSingleCellViewerUrl() {
+  if (typeof window === 'undefined') return './singlecell-viewer/';
+  const pathname = window.location.pathname || '';
+  if (pathname.includes('/dist/') || pathname.endsWith('/dist') || pathname.endsWith('/dist/index.html')) {
+    return './singlecell-viewer/';
+  }
+  return './singlecell-viewer/dist/';
+}
+
+function viewerUrlForConfig(conditionId, mode = 'light') {
+  const baseUrl = getSingleCellViewerUrl();
+  const url = new URL(baseUrl, typeof window === 'undefined' ? 'http://localhost' : window.location.href);
+  if (conditionId) url.searchParams.set('condition', conditionId);
+  url.searchParams.set('mode', mode === 'dark' ? 'dark' : 'light');
+  if (typeof window === 'undefined') return `${url.pathname}${url.search}`;
+  return `${url.pathname}${url.search}`;
+}
+
+function renderSignalResults(items, options = {}) {
+  const limit = Number(options.limit || 0);
+  const visible = limit > 0 ? items.slice(0, limit) : items;
+
+  if (!visible.length) {
+    return `<div class="empty-state">No inflammatory signals match the current search.</div>`;
+  }
+
+  return visible
     .map(
-      (row) =>
-        `<tr><td>${row.id}</td><td>${row.name}</td><td><em>${row.species}</em></td><td>${row.ligand}</td><td>${row.evidence}</td></tr>`
+      (signal) => `<article class="signal-card">
+        <div class="marker-head">
+          <strong>${signal.gene}</strong>
+          <span>${signal.conditionFocus}</span>
+        </div>
+        <p class="lineage-label">${signal.interpretation}</p>
+        <p>${signal.summary}</p>
+        <div class="marker-meta">${signal.compartment} · ${signal.pathway}</div>
+      </article>`
     )
     .join('');
-
-  return `<section class="card"><h3>C-RESULT-002 Result List</h3><table><thead><tr><th>ID</th><th>Name</th><th>Species</th><th>Ligand</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
 
-export function renderEvidenceTable() {
-  const rows = detailEvidenceRows
-    .map((row) => `<tr><td>${row.method}</td><td>${row.metric}</td><td>${row.score}</td></tr>`)
-    .join('');
-
-  return `<section class="card"><h3>C-EVID-001 Evidence Table</h3><table><thead><tr><th>Method</th><th>Metric</th><th>Score</th></tr></thead><tbody>${rows}</tbody></table></section>`;
-}
-
-export function renderProvenanceSummary() {
-  return `<section class="card"><h3>C-PROV-001 Provenance Summary</h3><p>Source: curated release 2026.03 • Snapshot: v1.0.0 • Confidence: reviewed</p></section>`;
-}
-
-export function renderProvenanceHistory() {
-  const items = provenanceHistory.map((event) => `<li>${event}</li>`).join('');
-  return `<section class="card"><h3>C-PROV-002 Provenance History</h3><ol>${items}</ol></section>`;
-}
-
-function getGithubPagesBasePath() {
-  const host = window.location.hostname;
-  if (!host.endsWith('github.io')) return '';
-  const parts = window.location.pathname.split('/').filter(Boolean);
-  return parts.length ? `/${parts[0]}` : '';
-}
-
-export function renderVisualizationShowcase() {
-  const basePath = getGithubPagesBasePath();
-  const singleCellUrl = `${basePath}/singlecell-viewer/dist/`;
-
-  return `
-  <section class="card">
-    <h2>Visualization Module Showcase (example page)</h2>
-    <p>Combined module inventory inspired by RiboCentre / Riboswitch / Aptamer / GZNL Data Portal / RNA-Puzzles.</p>
-  </section>
-
-  <section class="card" id="V-MULTISELECT-001">
-    <div class="dashboard-section">
-      <h3 style="text-align:center; margin-bottom: 8px;">Aptamer-style Multi-selection Module</h3>
-      <h4 style="text-align:center; margin-bottom: 20px;">Data Statistics Dashboard</h4>
-
-      <div class="amir-container">
-        <div class="chart-container two">
-          <div class="chart-wrapper" id="V-HIST-001">
-            <div class="chart-header">
-              <h4 class="chart-title">Year Distribution</h4>
-              <div class="chart-controls"><span class="chart-info">Click bars for multi-selection</span></div>
-            </div>
-            <div class="chart-content"><div id="yearChart" class="amir-chart"></div></div>
-          </div>
-
-          <div class="chart-wrapper" id="V-PIE-001">
-            <div class="chart-header">
-              <h4 class="chart-title">Category Distribution</h4>
-              <div class="chart-controls"><span class="chart-info">Click sectors for multi-selection</span></div>
-            </div>
-            <div class="chart-content"><div id="ligandChart" class="amir-chart"></div></div>
-          </div>
-        </div>
-
-        <section class="filter-controls" id="V-SEARCH-001">
-          <div class="filter-header">
-            <h4 class="filter-title">Data Filtering</h4>
-            <div class="filter-actions">
-              <button class="filter-btn reset-btn" id="resetAllFilters">Reset All</button>
-              <button class="filter-btn export-btn" id="exportData">Export Data</button>
-            </div>
-          </div>
-          <div class="filter-tags" id="filterTags"></div>
-        </section>
-
-        <section class="data-table-section" id="V-TABLE-001">
-          <div class="chart-header">
-            <h4 class="chart-title">Data Details</h4>
-            <div class="chart-controls"><span class="chart-info" id="tableInfo">Showing all entries</span></div>
-          </div>
-          <div class="table-container">
-            <div class="table-responsive">
-              <table id="dataTable" class="table table-striped table-hover">
-                <thead>
-                  <tr>
-                    <th>No.</th>
-                    <th>Sequence Name</th>
-                    <th>Aptamer Name</th>
-                    <th>Discovery Year</th>
-                    <th>Category</th>
-                    <th>Sequence (5'-3')</th>
-                    <th>Description</th>
-                  </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <section class="data-summary">
-          <div class="summary-cards">
-            <div class="summary-card">
-              <span class="summary-label">Currently Showing</span>
-              <span class="summary-count" id="currentCount">0</span>
-              <span class="summary-unit">entries</span>
-            </div>
-            <div class="summary-card">
-              <span class="summary-label">Filter Ratio</span>
-              <span class="summary-percentage" id="filterPercentage">0%</span>
-              <span class="summary-unit">visible</span>
-            </div>
-          </div>
-        </section>
+export function renderHeroSection() {
+  return `<section class="hero-shell card" id="LI-HERO-001">
+    <div class="hero-copy">
+      <p class="eyebrow">Four Lung Database Bundle</p>
+      <h1>${siteMeta.title}</h1>
+      <p class="hero-strap">${siteMeta.strapline}</p>
+      <p>${siteMeta.heroIntro}</p>
+      <div class="action-row">
+        <button type="button" data-route="conditions">Open condition browser</button>
+        <button type="button" class="ghost" data-route="signals">Search signal modules</button>
       </div>
     </div>
-  </section>
-
-  <section class="viz-grid">
-    <article class="card viz-card" id="V-RNA3D-001">
-      <h3>RNA 3D Structure Viewer (Mol*)</h3>
-      <p>Using PDBe Mol* style integration (as on Aptamer structure pages).</p>
-      <div class="search-row">
-        <input id="molstar-pdb" value="8K7W" aria-label="PDB ID" />
-        <button id="molstar-load" class="ghost">Load PDB</button>
+    <div class="hero-side">
+      <div class="release-panel">
+        <span>Current build</span>
+        <strong>${siteMeta.release}</strong>
+        <p>${siteMeta.coverage}</p>
       </div>
-      <div id="molstar-status" class="mini-note">Viewer loading…</div>
-      <div class="structure-table">
-        <div class="viewerSection1">
-          <div id="myViewer1"></div>
+      <div class="metric-grid">
+        ${heroMetrics
+          .map(
+            (metric) => `<article class="metric-card">
+              <span>${metric.label}</span>
+              <strong>${metric.value}</strong>
+              <p>${metric.detail}</p>
+            </article>`
+          )
+          .join('')}
+      </div>
+    </div>
+    <div class="timeline-ribbon">
+      ${conditionBackbone
+        .map(
+          (condition) => `<article class="timeline-stop">
+            <span>${String(condition.rank).padStart(2, '0')}</span>
+            <strong>${condition.label}</strong>
+            <p>${condition.state}</p>
+          </article>`
+        )
+        .join('')}
+    </div>
+  </section>`;
+}
+
+export function renderConditionSection() {
+  return `<section class="section-block" id="LI-CONDITION-001">
+    ${renderSectionHead(
+      'Condition backbone',
+      'A five-condition scaffold from healthy lung to repair-associated states',
+      'Each condition card anchors a pathogen class or recovery state, clarifying what should be compared against healthy reference tissue.'
+    )}
+    <div class="condition-grid">
+      ${conditionBackbone
+        .map(
+          (condition) => `<article class="condition-card card">
+            <div class="stage-meta">
+              <span>${String(condition.rank).padStart(2, '0')}</span>
+              <p>${condition.pathogen}</p>
+            </div>
+            <h3>${condition.label}</h3>
+            <p class="stage-headline">${condition.state}</p>
+            <p>${condition.summary}</p>
+            ${renderChipList(condition.traits)}
+            <p class="stage-question">${condition.question}</p>
+          </article>`
+        )
+        .join('')}
+    </div>
+  </section>`;
+}
+
+export function renderConditionViewerSection(selectedCondition = 'healthy', mode = 'light') {
+  const viewerUrl = viewerUrlForConfig(selectedCondition, mode);
+
+  return `<section class="section-block" id="LI-UMAP-001">
+    ${renderSectionHead(
+      'Single-cell viewer',
+      'Condition-centered UMAP exploration',
+      'The Conditions page is centered on the embedded single-cell viewer. Condition buttons live inside the viewer so the embedding can stay wide and visually primary.'
+    )}
+    <article class="card atlas-viewer-card atlas-viewer-wide">
+      <div class="atlas-viewer-head">
+        <div>
+          <p class="eyebrow">Single-cell Data Viewer</p>
+          <h2>UMAP-first infection condition exploration</h2>
+          <p>This viewer uses simulated healthy and infection-response subsets derived from the bundled lungdev coordinates so the portal can use the same real viewer interface without showing static UMAP images.</p>
         </div>
+        <a class="atlas-link" href="${viewerUrl}" target="_blank" rel="noopener noreferrer">Open viewer in new tab</a>
       </div>
-    </article>
-
-    <article class="card viz-card" id="V-SECONDARY-001">
-      <h3>RNA Secondary Structure Viewer (Forna)</h3>
-      <p>Forna module with custom nucleotide colors (aptamer-style).</p>
-      <div id="custom_colors" class="forna-host"></div>
-      <form onsubmit="return false" class="optionsform">
-        <textarea id="CustomColorText" name="hide" style="display:none;">1-5:#68AF31 56:blue 40:red 59-63:#68AF31 7-12:#18529A 14:#18529A 17-25:#18529A 29-34:#18529A 42-45:#C06D23 52-55:#C06D23</textarea>
-      </form>
-      <div id="forna-status" class="mini-note">Forna loading…</div>
-    </article>
-
-    <article class="card viz-card" id="V-SC-001">
-      <h3>Single-cell Embedding (UMAP/t-SNE)</h3>
-      <p>Embedded local single-cell viewer:</p>
-      <p><a href="${singleCellUrl}" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a></p>
       <iframe
-        title="Single-cell viewer"
-        src="${singleCellUrl}"
-        class="umap-embed"
+        title="lunginf single-cell condition viewer"
+        src="${viewerUrl}"
+        class="atlas-viewer-frame"
         loading="lazy"
       ></iframe>
+      <p class="atlas-note">If the panel is blank, build the viewer in <code>singlecell-viewer/</code> and then rerun the top-level build.</p>
     </article>
   </section>`;
 }
 
-function aggregate(rows, key) {
-  const map = new Map();
-  for (const row of rows) {
-    const value = row[key];
-    map.set(value, (map.get(value) || 0) + 1);
-  }
-  return [...map.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-}
+export function renderImmuneSection(options = {}) {
+  const compact = Boolean(options.compact);
+  const visiblePrograms = compact ? immuneStateCatalog.slice(0, 3) : immuneStateCatalog;
 
-function toPiePaths(entries) {
-  const total = entries.reduce((s, [, n]) => s + n, 0) || 1;
-  let angle = -Math.PI / 2;
-  const cx = 90;
-  const cy = 90;
-  const r = 75;
-
-  return entries.map(([label, value], idx) => {
-    const portion = (value / total) * Math.PI * 2;
-    const start = angle;
-    const end = angle + portion;
-    angle = end;
-
-    const x1 = cx + r * Math.cos(start);
-    const y1 = cy + r * Math.sin(start);
-    const x2 = cx + r * Math.cos(end);
-    const y2 = cy + r * Math.sin(end);
-    const largeArc = portion > Math.PI ? 1 : 0;
-
-    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-    return { label, value, path, idx };
-  });
-}
-
-export function initHeaderSearch() {
-  const input = document.getElementById('search-box-header');
-  const button = document.getElementById('search-button-header');
-  const results = document.getElementById('search-results-header');
-  if (!input || !button || !results) return;
-
-  function performSearch() {
-    const q = input.value.trim().toLowerCase();
-    if (!q) {
-      results.style.display = 'none';
-      results.innerHTML = '';
-      return;
+  return `<section class="section-block" id="LI-IMMUNE-001">
+    ${renderSectionHead(
+      'Immune landscape',
+      'Host-response states should be compared as programs, not just as cell counts',
+      'The MVP centers on interpretable immune-state modules so users can compare antiviral, antibacterial, fungal, and repair-linked remodeling logic.'
+    )}
+    <div class="immune-grid ${compact ? 'compact' : ''}">
+      ${visiblePrograms
+        .map(
+          (program) => `<article class="immune-card card">
+            <p class="lineage-label">${program.category}</p>
+            <h3>${program.name}</h3>
+            <p class="species-comparison">${program.comparison}</p>
+            <p>${program.summary}</p>
+            ${renderChipList(program.anchors)}
+            <p class="lineage-insight">${program.evidence}</p>
+          </article>`
+        )
+        .join('')}
+    </div>
+    ${
+      compact
+        ? `<div class="section-action"><button type="button" class="ghost" data-route="immune-states">Inspect full immune-state explorer</button></div>`
+        : ''
     }
-
-    const matched = aptamerMultiSelectRows.filter((row) => {
-      const text = `${row.sequenceName} ${row.aptamerName} ${row.category} ${row.description} ${row.pdbId}`.toLowerCase();
-      return text.includes(q);
-    });
-
-    results.innerHTML = matched.length
-      ? matched
-          .slice(0, 8)
-          .map(
-            (row) => `<a class="search-result-item" href="#detail"><strong>${row.aptamerName}</strong> · ${row.category} · ${row.year} <span>${row.pdbId}</span></a>`
-          )
-          .join('')
-      : '<div class="search-result-item muted">No results found.</div>';
-
-    results.style.display = 'block';
-  }
-
-  if (input.dataset.boundSearch !== 'true') {
-    input.addEventListener('input', performSearch);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        performSearch();
-      }
-    });
-    button.addEventListener('click', performSearch);
-    input.dataset.boundSearch = 'true';
-  }
-
-  if (!window.__headerSearchDocBound) {
-    document.addEventListener('click', (e) => {
-      const liveResults = document.getElementById('search-results-header');
-      const liveInput = document.getElementById('search-box-header');
-      const liveButton = document.getElementById('search-button-header');
-      if (!liveResults || !liveInput || !liveButton) return;
-      if (!liveResults.contains(e.target) && e.target !== liveInput && e.target !== liveButton && !liveButton.contains(e.target)) {
-        liveResults.style.display = 'none';
-      }
-    });
-    window.__headerSearchDocBound = true;
-  }
+  </section>`;
 }
 
-export function initAptamerMultiSelect() {
-  const yearChart = document.getElementById('yearChart');
-  const ligandChart = document.getElementById('ligandChart');
-  const tableBody = document.getElementById('tableBody');
-  const tableInfo = document.getElementById('tableInfo');
-  const filterTags = document.getElementById('filterTags');
-  const resetBtn = document.getElementById('resetAllFilters');
-  const exportBtn = document.getElementById('exportData');
-  const currentCount = document.getElementById('currentCount');
-  const filterPercentage = document.getElementById('filterPercentage');
+export function renderSignalSection(options = {}) {
+  const compact = Boolean(options.compact);
+  const limit = compact ? 4 : signalCatalog.length;
 
-  if (!yearChart || !ligandChart || !tableBody) return;
+  return `<section class="section-block" id="LI-SIGNAL-001">
+    ${renderSectionHead(
+      'Signal explorer',
+      'Search inflammatory and repair-linked signal modules by gene and condition',
+      'The launch signal catalog is designed to anchor interpretation of infected lung programs, not to stand in for a full pathway database.'
+    )}
+    <div class="card marker-search-panel" data-signal-search-root data-limit="${limit}">
+      <div class="search-controls">
+        <input
+          type="text"
+          class="search-input"
+          data-signal-search
+          placeholder="Search genes, pathways, condition labels, or interpretations"
+          aria-label="Search inflammatory signals"
+        />
+        <button type="button" class="ghost" data-signal-reset>Reset</button>
+      </div>
+      <div class="chip-row">
+        ${signalSearchSuggestions
+          .map(
+            (gene) => `<button type="button" class="chip chip-button" data-signal-suggestion="${gene}">${gene}</button>`
+          )
+          .join('')}
+      </div>
+      <div class="marker-results" data-signal-results>${renderSignalResults(signalCatalog, { limit })}</div>
+    </div>
+    ${
+      compact
+        ? `<div class="section-action"><button type="button" class="ghost" data-route="signals">Open full signal workspace</button></div>`
+        : ''
+    }
+  </section>`;
+}
 
-  const totalRows = aptamerMultiSelectRows.length;
-  const selectedYears = new Set();
-  const selectedCategories = new Set();
+export function renderDatasetSection(options = {}) {
+  const compact = Boolean(options.compact);
+  const visibleDatasets = compact ? datasetReleases.slice(0, 3) : datasetReleases;
 
-  const yearAgg = aggregate(aptamerMultiSelectRows, 'year');
-  const categoryAgg = aggregate(aptamerMultiSelectRows, 'category');
+  return `<section class="section-block" id="LI-DATASET-001">
+    ${renderSectionHead(
+      'Datasets and releases',
+      'Condition-scoped release rows make comparison logic explicit',
+      'Each release states its condition framing, respiratory structure emphasis, assay footprint, and current prototype interpretation limits.'
+    )}
+    <article class="card data-table-card">
+      <div class="table-card-head">
+        <div>
+          <h3>Infectious condition release table</h3>
+          <p>${compact ? `Showing ${visibleDatasets.length} of ${datasetReleases.length} current prototype releases.` : `Showing all ${datasetReleases.length} current prototype releases.`}</p>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Dataset</th>
+              <th>Condition</th>
+              <th>Structure</th>
+              <th>Cells</th>
+              <th>Assays</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${visibleDatasets
+              .map(
+                (dataset) => `<tr>
+                  <td>${dataset.id}</td>
+                  <td><strong>${dataset.title}</strong></td>
+                  <td>${dataset.conditionScope}</td>
+                  <td>${dataset.structure}</td>
+                  <td>${dataset.cells}</td>
+                  <td>${dataset.assays}</td>
+                  <td><span class="table-status">${dataset.status}</span></td>
+                  <td>${dataset.note}</td>
+                </tr>`
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    </article>
+    ${
+      compact
+        ? `<div class="section-action"><button type="button" class="ghost" data-route="datasets">Open full dataset table</button></div>`
+        : ''
+    }
+  </section>`;
+}
 
-  function applyFilters() {
-    return aptamerMultiSelectRows.filter((row) => {
-      const yearPass = selectedYears.size === 0 || selectedYears.has(row.year);
-      const catPass = selectedCategories.size === 0 || selectedCategories.has(row.category);
-      return yearPass && catPass;
-    });
-  }
-
-  function renderYearChart() {
-    const max = Math.max(...yearAgg.map(([, n]) => n), 1);
-    yearChart.innerHTML = `<div class="bar-chart">${yearAgg
-      .map(([year, count]) => {
-        const active = selectedYears.has(year);
-        const h = Math.round((count / max) * 100);
-        return `<button class="bar ${active ? 'active' : ''}" data-year="${year}" title="${year}: ${count}">
-          <span class="bar-fill" style="height:${h}%"></span>
-          <span class="bar-label">${year}</span>
-        </button>`;
-      })
-      .join('')}</div>`;
-
-    yearChart.querySelectorAll('.bar').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const year = Number(btn.dataset.year);
-        if (selectedYears.has(year)) selectedYears.delete(year);
-        else selectedYears.add(year);
-        refresh();
-      });
-    });
-  }
-
-  function renderPieChart() {
-    const sectors = toPiePaths(categoryAgg);
-    const colors = ['var(--primary)', 'var(--accent)', 'var(--primarySoft)', '#7c3aed', '#16a34a'];
-
-    ligandChart.innerHTML = `
-      <div class="pie-layout">
-        <svg viewBox="0 0 180 180" class="pie-svg" aria-label="category pie chart">
-          ${sectors
+export function renderEvidenceSection() {
+  return `<section class="section-block" id="LI-EVIDENCE-001">
+    ${renderSectionHead(
+      'Evidence and provenance',
+      'Condition framing should stay explicit before broader infection expansion',
+      'The current prototype favors transparent condition anchors, route logic, and release scope over synthetic completeness.'
+    )}
+    <div class="evidence-grid">
+      <article class="card">
+        <h3>Current evidence rails</h3>
+        <div class="metric-grid">
+          ${evidenceHighlights
             .map(
-              (s, i) => `<path d="${s.path}" data-category="${s.label}" fill="${colors[i % colors.length]}" class="pie-sector ${
-                selectedCategories.has(s.label) ? 'active' : ''
-              }"></path>`
-            )
-            .join('')}
-        </svg>
-        <div class="pie-legend">
-          ${categoryAgg
-            .map(
-              ([label, count], i) => `<button class="legend-item ${selectedCategories.has(label) ? 'active' : ''}" data-category="${label}">
-              <span class="dot" style="background:${colors[i % colors.length]}"></span>${label} (${count})</button>`
+              (item) => `<article class="metric-card">
+                <span>${item.label}</span>
+                <strong>${item.value}</strong>
+                <p>${item.detail}</p>
+              </article>`
             )
             .join('')}
         </div>
-      </div>`;
+      </article>
+      <article class="card">
+        <h3>Provenance timeline</h3>
+        <ol class="timeline-list">
+          ${provenanceHistory.map((item) => `<li>${item}</li>`).join('')}
+        </ol>
+      </article>
+      <article class="card">
+        <h3>Methods and resources</h3>
+        <ul class="key-list">
+          ${methodsResources.map((item) => `<li><strong>${item.title}:</strong> ${item.detail}</li>`).join('')}
+        </ul>
+      </article>
+    </div>
+  </section>`;
+}
 
-    const toggle = (cat) => {
-      if (selectedCategories.has(cat)) selectedCategories.delete(cat);
-      else selectedCategories.add(cat);
-      refresh();
-    };
+export function renderPortfolioSection() {
+  const relatedSites = databasePortfolio.filter((site) => site.id !== siteMeta.siteId);
 
-    ligandChart.querySelectorAll('[data-category]').forEach((el) => {
-      el.addEventListener('click', () => toggle(el.dataset.category));
+  return `<section class="section-block" id="LI-PORTFOLIO-001">
+    ${renderSectionHead(
+      'Portfolio context',
+      'lunginf is one axis of a four-database system',
+      'The technical base can be shared, but the scientific mission, filters, and question framing must remain distinct.'
+    )}
+    <div class="portfolio-grid">
+      ${relatedSites
+        .map(
+          (site) => `<a class="portfolio-card card" href="${bundleHref(site.id)}">
+            <span>${site.axis}</span>
+            <h3>${site.label}</h3>
+            <p>${site.summary}</p>
+            <strong>${site.status}</strong>
+            <small>${site.customDomain}</small>
+          </a>`
+        )
+        .join('')}
+    </div>
+  </section>`;
+}
+
+export function renderBundleBridgeSection(routeId, moduleId = 'LI-BRIDGE-001') {
+  const links = bundleCrossLinks[routeId] ?? [];
+
+  if (!links.length) return '';
+
+  return `<section class="section-block" id="${moduleId}">
+    ${renderSectionHead(
+      'Bundle links',
+      'Follow complementary routes across the four lung databases',
+      'This page is cross-linked to the other portals so infection questions can stay connected to development, cancer, and evolution views.'
+    )}
+    <div class="bundle-bridge-grid">
+      ${links
+        .map((link) => {
+          const site = bundleSiteById(link.siteId);
+          if (!site) return '';
+          return `<a class="bundle-bridge-card card" href="${bundleHref(link.siteId, link.route)}">
+            <span>${site.axis} · ${site.label}</span>
+            <h3>${link.title}</h3>
+            <p>${link.summary}</p>
+            <strong>${site.customDomain}</strong>
+          </a>`;
+        })
+        .join('')}
+    </div>
+  </section>`;
+}
+
+export function renderPageBanner(routeId) {
+  const copy = routeCopy[routeId];
+
+  return `<section class="page-banner card">
+    <p class="eyebrow">${copy.eyebrow}</p>
+    <h1>${copy.title}</h1>
+    <p>${copy.description}</p>
+  </section>`;
+}
+
+export function renderHomePage() {
+  return `<main class="page-shell page-home">
+    ${renderHeroSection()}
+    ${renderConditionSection()}
+    ${renderImmuneSection({ compact: true })}
+    ${renderSignalSection({ compact: true })}
+    ${renderDatasetSection({ compact: true })}
+    ${renderBundleBridgeSection('home')}
+    ${renderPortfolioSection()}
+  </main>`;
+}
+
+export function renderConditionsPage(selectedCondition = 'healthy', mode = 'light') {
+  return `<main class="page-shell">
+    ${renderPageBanner('conditions')}
+    ${renderConditionViewerSection(selectedCondition, mode)}
+    ${renderConditionSection()}
+    <section class="section-block card" id="LI-QUESTION-001">
+      ${renderSectionHead(
+        'Core infection questions',
+        'Condition pages should answer concrete healthy-versus-infected questions',
+        'The condition route exists to connect pathogen category, tissue injury, and host-response interpretation.'
+      )}
+      <ul class="key-list">
+        ${coreQuestions.map((question) => `<li>${question}</li>`).join('')}
+      </ul>
+    </section>
+    ${renderBundleBridgeSection('conditions')}
+  </main>`;
+}
+
+export function renderImmuneStatesPage() {
+  return `<main class="page-shell">
+    ${renderPageBanner('immune-states')}
+    ${renderImmuneSection()}
+    <section class="section-block card" id="LI-RULES-001">
+      ${renderSectionHead(
+        'Reading rules',
+        'Shared immune response does not mean pathogen identity disappears',
+        'Programs should be interpreted through both host-response logic and condition-specific context.'
+      )}
+      <ul class="key-list">
+        <li>Use shared modules to compare common host-response logic across infected lungs.</li>
+        <li>Use pathogen-skewed modules to identify viral, bacterial, fungal, or repair-associated differences.</li>
+        <li>Keep healthy baseline states visible so infection-linked expansion is not misread as normal tissue composition.</li>
+      </ul>
+    </section>
+    ${renderBundleBridgeSection('immune-states')}
+  </main>`;
+}
+
+export function renderSignalsPage() {
+  return `<main class="page-shell">
+    ${renderPageBanner('signals')}
+    ${renderSignalSection()}
+    <section class="section-block card" id="LI-META-001">
+      ${renderSectionHead(
+        'Metadata priorities',
+        'Signal interpretation depends on explicit infection metadata',
+        'These fields drive the MVP signal search, condition framing, and future healthy-versus-infected comparisons.'
+      )}
+      ${renderChipList(metadataPriorities)}
+    </section>
+    ${renderBundleBridgeSection('signals')}
+  </main>`;
+}
+
+export function renderDatasetsPage() {
+  return `<main class="page-shell">
+    ${renderPageBanner('datasets')}
+    ${renderDatasetSection()}
+    ${renderEvidenceSection()}
+    ${renderBundleBridgeSection('datasets')}
+  </main>`;
+}
+
+export function renderAboutPage() {
+  return `<main class="page-shell">
+    ${renderPageBanner('about')}
+    <section class="split-grid">
+      <article class="card">
+        <h2>Scientific mission</h2>
+        <p>${siteMeta.mission}</p>
+        <p>${siteMeta.focus}</p>
+      </article>
+      <article class="card">
+        <h2>Target users</h2>
+        <ul class="key-list">
+          ${targetUsers.map((item) => `<li>${item}</li>`).join('')}
+        </ul>
+      </article>
+      <article class="card">
+        <h2>Scope boundaries</h2>
+        <ul class="key-list">
+          ${scopeBoundaries.map((item) => `<li>${item}</li>`).join('')}
+        </ul>
+      </article>
+      <article class="card">
+        <h2>Launch checklist</h2>
+        <ul class="key-list">
+          ${launchChecklist.map((item) => `<li>${item}</li>`).join('')}
+        </ul>
+      </article>
+    </section>
+    ${renderBundleBridgeSection('about')}
+    ${renderPortfolioSection()}
+  </main>`;
+}
+
+function signalMatches(signal, query) {
+  const haystack = [
+    signal.gene,
+    signal.conditionFocus,
+    signal.interpretation,
+    signal.compartment,
+    signal.pathway,
+    signal.summary
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  return haystack.includes(query.toLowerCase());
+}
+
+export function initSignalSearch() {
+  const roots = document.querySelectorAll('[data-signal-search-root]');
+
+  roots.forEach((root) => {
+    if (root.dataset.bound === 'true') return;
+
+    const input = root.querySelector('[data-signal-search]');
+    const results = root.querySelector('[data-signal-results]');
+    const reset = root.querySelector('[data-signal-reset]');
+    const suggestionButtons = root.querySelectorAll('[data-signal-suggestion]');
+    const limit = Number(root.dataset.limit || '0');
+
+    if (!input || !results) return;
+
+    function update(query = input.value.trim()) {
+      const matches = query ? signalCatalog.filter((signal) => signalMatches(signal, query)) : signalCatalog;
+      results.innerHTML = renderSignalResults(matches, { limit });
+    }
+
+    input.addEventListener('input', () => update());
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        update();
+      }
     });
-  }
 
-  function renderFilterTags() {
-    const tags = [
-      ...[...selectedYears].map((y) => ({ kind: 'year', value: y })),
-      ...[...selectedCategories].map((c) => ({ kind: 'category', value: c }))
-    ];
+    reset?.addEventListener('click', () => {
+      input.value = '';
+      update('');
+    });
 
-    filterTags.innerHTML = tags.length
-      ? tags
-          .map(
-            (t) => `<button class="chip" data-kind="${t.kind}" data-value="${t.value}">${t.kind}: ${t.value} ×</button>`
-          )
-          .join('')
-      : '<span class="mini-note">No active filters</span>';
-
-    filterTags.querySelectorAll('[data-kind]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const kind = btn.dataset.kind;
-        const value = btn.dataset.value;
-        if (kind === 'year') selectedYears.delete(Number(value));
-        if (kind === 'category') selectedCategories.delete(value);
-        refresh();
+    suggestionButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        input.value = button.dataset.signalSuggestion || '';
+        update(input.value);
       });
     });
-  }
 
-  function renderTable() {
-    const rows = applyFilters();
-    tableBody.innerHTML = rows
-      .map(
-        (row, idx) => `<tr>
-      <td>${idx + 1}</td>
-      <td>${row.sequenceName}</td>
-      <td>${row.aptamerName}</td>
-      <td>${row.year}</td>
-      <td>${row.category}</td>
-      <td>${row.sequence}</td>
-      <td>${row.description}</td>
-    </tr>`
-      )
-      .join('');
-
-    tableInfo.textContent = `Showing ${rows.length} of ${totalRows} entries`;
-    currentCount.textContent = String(rows.length);
-    filterPercentage.textContent = `${Math.round((rows.length / totalRows) * 100)}%`;
-  }
-
-  function exportFiltered() {
-    const rows = applyFilters();
-    const header = ['No.', 'Sequence Name', 'Aptamer Name', 'Discovery Year', 'Category', 'Sequence', 'Description'];
-    const body = rows.map((r, i) => [i + 1, r.sequenceName, r.aptamerName, r.year, r.category, r.sequence, r.description]);
-    const csv = [header, ...body]
-      .map((line) => line.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'aptamer_filtered_data.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function refresh() {
-    renderYearChart();
-    renderPieChart();
-    renderFilterTags();
-    renderTable();
-  }
-
-  resetBtn?.addEventListener('click', () => {
-    selectedYears.clear();
-    selectedCategories.clear();
-    refresh();
+    update();
+    root.dataset.bound = 'true';
   });
-
-  exportBtn?.addEventListener('click', exportFiltered);
-
-  refresh();
-}
-
-async function loadMolstarAssets() {
-  if (!document.getElementById('pdbe-molstar-css')) {
-    const css = document.createElement('link');
-    css.id = 'pdbe-molstar-css';
-    css.rel = 'stylesheet';
-    css.href = 'https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.0/build/pdbe-molstar.css';
-    document.head.appendChild(css);
-  }
-
-  if (!window.PDBeMolstarPlugin) {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.0/build/pdbe-molstar-plugin.js';
-      script.async = true;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-}
-
-async function loadFornaAssets() {
-  if (!document.getElementById('forna-css')) {
-    const css = document.createElement('link');
-    css.id = 'forna-css';
-    css.rel = 'stylesheet';
-    css.type = 'text/css';
-    css.href = 'https://www.ribocentre.org/css/fornac.css';
-    css.media = 'screen';
-    document.head.appendChild(css);
-  }
-
-  if (!window.jQuery) {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://www.ribocentre.org/js/jquery.js';
-      script.async = true;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-
-  if (!window.d3) {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://www.ribocentre.org/js/d3.js';
-      script.async = true;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-
-  if (!window.fornac) {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://www.ribocentre.org/js/demo/rsvfornac.js';
-      script.async = true;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-}
-
-export async function initSecondaryStructureModule() {
-  const status = document.getElementById('forna-status');
-  const host = document.getElementById('custom_colors');
-  const text = document.getElementById('CustomColorText');
-  if (!status || !host || !text) return;
-
-  try {
-    await loadFornaAssets();
-    host.innerHTML = '';
-    const container = new window.fornac.FornaContainer('#custom_colors', {
-      applyForce: 1,
-      editable: 'true',
-      initialSize: [450, 400]
-    });
-
-    const options = {
-      structure: '(((((.((((((.(..(((()))))...)))))).......((((......))))...)))))',
-      sequence: 'GGCGUCCUGGUAUCCAAUCCGGAUGUACUACCAGCUGAUGAGUCCCAAAUAGGACGAAACGCC'
-    };
-
-    container.addRNA(options.structure, options);
-    container.addCustomColorsText(text.value);
-    status.textContent = 'Forna secondary structure loaded.';
-  } catch (_e) {
-    status.textContent = 'Forna failed to load (remote scripts blocked).';
-  }
-}
-
-export async function initMolstarModule() {
-  const container = document.getElementById('myViewer1');
-  const status = document.getElementById('molstar-status');
-  const loadBtn = document.getElementById('molstar-load');
-  const pdbInput = document.getElementById('molstar-pdb');
-  if (!container || !status || !loadBtn || !pdbInput) return;
-
-  let viewer = null;
-  const basePath = getGithubPagesBasePath();
-  const localPdbUrl = `${basePath}/pdbfiles/8k7w_RNA+only.pdb`;
-
-  function renderLocalPdbTextFallback() {
-    container.innerHTML = `<div class="mini-note">Mol* script unavailable. Local PDB path:</div><pre class="pdb-fallback">${localPdbUrl}</pre>`;
-  }
-
-  async function loadStructureWithViewer(pdbId) {
-    const remoteCif = `https://files.rcsb.org/download/${pdbId}.cif`;
-    const customData = pdbId === '8K7W' ? { url: localPdbUrl, format: 'pdb' } : { url: remoteCif, format: 'cif' };
-
-    if (!viewer) {
-      viewer = new window.PDBeMolstarPlugin();
-      viewer.render(container, {
-        customData,
-        expanded: false,
-        hideControls: true,
-        bgColor: { r: 255, g: 255, b: 255 }
-      });
-      return;
-    }
-
-    viewer.visual.update({ customData }, true);
-  }
-
-  async function loadPdb() {
-    const pdbId = (pdbInput.value || '8K7W').trim().toUpperCase();
-    status.textContent = `Loading Mol* for ${pdbId}…`;
-
-    try {
-      await loadMolstarAssets();
-      await loadStructureWithViewer(pdbId);
-      status.textContent = pdbId === '8K7W' ? 'Loaded Mol* in #myViewer1 from /pdbfiles/8k7w_RNA+only.pdb' : `Loaded Mol* in #myViewer1 for ${pdbId}`;
-    } catch (_e) {
-      status.textContent = 'Mol* CDN blocked; cannot instantiate viewer. Local path is ready.';
-      renderLocalPdbTextFallback();
-    }
-  }
-
-  loadBtn.addEventListener('click', loadPdb);
-  await loadPdb();
 }
